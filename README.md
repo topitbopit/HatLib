@@ -7,6 +7,52 @@ Does funky stuff with your hats
 
 HatLib is a simple library that helps you make hat-based scripts. Instead of having to manually manage every single hat instance and make sure you're setting everything properly, HatLib *mostly* does it for you.  
 
+## Example  
+```lua
+local HatLib = loadstring(game:HttpGet('https://raw.githubusercontent.com/topitbopit/HatLib/main/library.lua'))()
+
+local HatModule = HatLib.new({
+    CustomVelocity = Vector3.new(0, 0, 30),
+    DisableFlicker = true,
+    BlockifyHats = true,
+    HatLocation = 'workspace',
+}) 
+
+while HatModule:CreateHat() do end -- simple "exploit" to create as many hats as the player has 
+
+local Hats = HatModule:GetHatArray()
+if ( #Hats == 0 ) then
+    -- no hats found, return
+    return HatModule:Destroy() 
+end
+
+local RunService = game:GetService('RunService')
+local Time = 0 
+local RootPart = game:GetService('Players').LocalPlayer.Character.HumanoidRootPart
+
+local Connection = RunService.Heartbeat:Connect(function(DeltaTime: number)
+    Time += DeltaTime
+    
+    local Position = RootPart.Position 
+    
+    for idx, hat in ipairs(Hats) do 
+        local thisTime = Time + idx * ( math.pi / (#Hats / 2 ) )
+        
+        local posX = math.sin(thisTime) * 5
+        local posY = ( math.cos(thisTime + Time) )
+        local posZ = math.cos(thisTime) * 5 
+        
+        local thisCFrame = CFrame.new(Position + Vector3.new(posX, posY, posZ), Position) 
+        
+        hat:SetCFrame(thisCFrame)    
+    end
+end)
+
+task.wait(10)
+Connection:Disconnect()
+HatModule:Destroy() 
+```
+
 ## Docs  
 
 ### HatModule (methods)  
@@ -116,53 +162,6 @@ HatLib is a simple library that helps you make hat-based scripts. Instead of hav
 <Vector3> HatSize
 ```
 *The size of this hat. For international fedoras, this is (1, 1, 1)*  
-
-## Example  
-```lua
-local HatLib = loadfile('HatLib.lua')()
-
-local HatModule = HatLib.new({
-    CustomVelocity = Vector3.new(0, 0, 30),
-    DisableFlicker = true,
-    BlockifyHats = true,
-    HatLocation = 'workspace',
-}) 
-
-while HatModule:CreateHat() do end -- simple "exploit" to create as many hats as the player has 
-
-local Hats = HatModule:GetHatArray()
-if ( #Hats == 0 ) then
-    -- no hats found, return
-    return HatModule:Destroy() 
-end
-
-local RunService = game:GetService('RunService')
-local Time = 0 
-local RootPart = game:GetService('Players').LocalPlayer.Character.HumanoidRootPart
-
-local Connection = RunService.Heartbeat:Connect(function(DeltaTime: number)
-    Time += DeltaTime
-    
-    local Position = RootPart.Position 
-    
-    for idx, hat in ipairs(Hats) do 
-        local thisTime = Time + idx * ( math.pi / (#Hats / 2 ) )
-        
-        local posX = math.sin(thisTime) * 5
-        local posY = ( math.cos(thisTime + Time) )
-        local posZ = math.cos(thisTime) * 5 
-        
-        local thisCFrame = CFrame.new(Position + Vector3.new(posX, posY, posZ), Position) 
-        
-        hat:SetCFrame(thisCFrame)    
-    end
-end)
-
-task.wait(10)
-Connection:Disconnect()
-HatModule:Destroy() 
-```
-
 
 
 ## Issues & Fixes  
