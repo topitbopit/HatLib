@@ -115,7 +115,7 @@ HatModule:Destroy()
 ```lua
 <Accessory, Part> function HatModule:GetNextAccessory(keepInvalidAccessories: boolean)  
 ```
-*Returns the next valid accessory instance (and it's handle) that's found. If an invalid accessory is found, and `keepInvalidAccessories` isn't true, it will be deleted*  
+*Returns the next valid accessory instance (and it's handle) that's found. If an invalid accessory is found, and `keepInvalidAccessories` isn't true, it will automatically be deleted so the next GetNextAccessory call will work*  
 ```lua
 <table {Accessory} > function HatModule:GetAllAccessories()  
 ```
