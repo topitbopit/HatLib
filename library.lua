@@ -1,8 +1,8 @@
 --- Hatlib 
 -- Remade by topit
--- January 18 2023
+-- January 18 2023 - March 17 2023
 
-local HatlibVersion = 'v2.0.0'
+local HatlibVersion = 'v2.0.1' -- Changelog can be viewed on the repo, check commit history
 
 if ( not game:IsLoaded() ) then
     game.Loaded:Wait()
@@ -105,36 +105,14 @@ do
         setmetatable(self, nil)
     end
     
-    function HatObject.new(parentModule: HatModule) 
+    function HatObject.new(parentModule: HatModule, hatAccessory: Accessory) 
         local self = setmetatable({}, HatObject)
         self._parent = parentModule
         
         local settings = self._parent._settings
         self._settings = settings 
         
-        if ( not localChar ) then
-            localPlayer.CharacterAdded:Wait() -- hopefully this works fine
-        end
-        
-        -- Check for an existing accessory (object thing that holds your hat) 
-        local hatAccessory = localChar:FindFirstChildOfClass('Accessory')
-        if ( not hatAccessory ) then
-            -- If none exist, delete this hatobject and return an error message
-            setmetatable(self, nil)
-            
-            return false, 'No valid hat was found'
-        end 
-        
-        -- Check for an existing hat handle 
-        local hatHandle = hatAccessory:FindFirstChild('Handle')
-        if ( not hatHandle ) then
-            -- If it doesnt exist, delete this hatobject and return an error message
-            -- Delete the accessory too, so the next CreateHat call will work 
-            setmetatable(self, nil)
-            hatAccessory:Destroy() 
-            
-            return false, 'Found hat is missing a handle'
-        end 
+        local hatHandle = hatAccessory.Handle
         
         local hatSize, meshId
         local hatMesh = hatHandle:FindFirstChildOfClass('SpecialMesh') or hatHandle:FindFirstChildOfClass('Mesh') -- Might add filemesh support later 
@@ -179,6 +157,7 @@ do
             hatRoot.Size = hatSize
             
             hatHandle.Transparency = 1
+            
         elseif ( settings.ShowRoots ) then  
             hatRoot.Color = Color3.fromRGB(0, 0, 255)
             hatRoot.Size = Vector3.one * 0.8
@@ -264,9 +243,117 @@ do
         return self._running 
     end
     
-    -- Creates a new HatObject and returns it 
+    function HatModule:GetNextAccessory(keepInvalidAccessories: boolean) 
+        -- Check for the player character 
+        if ( not localChar ) then
+            -- Character isn't spawned in, return an error message 
+            
+            return false, 'Local character not spawned in'
+        end
+        
+        -- Check for an existing accessory (object thing that holds your hat) 
+        local hatAccessory = localChar:FindFirstChildOfClass('Accessory')
+        if ( not hatAccessory ) then
+            -- If none exist return an error message
+            
+            return false, 'No valid hat was found'
+        end 
+        
+        -- Check for an existing hat handle 
+        local hatHandle = hatAccessory:FindFirstChild('Handle')
+        if ( not hatHandle ) then
+            -- If it doesnt exist return an error message
+            
+            -- If keepInvalidAccessories is true, keep this hat (in case the user needs it for some reason)
+            -- Otherwise destroy it so the next GetNextAccessory call works 
+            if ( keepInvalidAccessories ~= true ) then
+                hatAccessory:Destroy() 
+            end 
+            
+            return false, 'Found hat is missing a handle'
+        end 
+        
+        return hatAccessory, hatHandle
+    end
+    
+    function HatModule:GetAllAccessories() 
+        local accessories = {}
+        
+        -- This works similar to GetNextAccessory
+        -- Check for the player character 
+        if ( not localChar ) then
+            -- Character isn't spawned in, return an error message  
+            return false, 'Local character not spawned in'
+        end
+        
+        -- Check for existing accessories
+        for _, accessory in ipairs(localChar:GetChildren()) do 
+            if ( accessory:IsA('Accessory') ) then
+                -- This child's an accessory, check to see if it has a handle
+                if ( accessory:FindFirstChild('Handle') ) then
+                    -- It does, add it to the list
+                    table.insert(accessories, accessory)
+                end
+            end
+        end
+        
+        if ( #accessories == 0 ) then
+            -- No accessories were found, return an error message
+            return false, 'No accessories were found' 
+        end
+        
+        -- Otherwise, return accessories table
+        return accessories
+    end
+    
+    -- Creates a new HatObject and returns it if a valid accessory is found
     function HatModule:CreateHat() 
-        return HatObject.new(self)
+        local nextAccessory, message = self:GetNextAccessory()
+        
+        if ( nextAccessory == false ) then
+            return false, message
+        end
+        
+        return HatObject.new(self, nextAccessory)
+    end
+    
+    function HatModule:CreateHatById(targetMeshId: string)
+        -- Get all hat accessories
+        local accessories, message = self:GetAllAccessories()
+        
+        -- If it errored for some reason, return that message
+        if ( accessories == false ) then
+            return false, message
+        end
+        
+        local match 
+        
+        -- Check all accessories for a matching meshid 
+        for _, accessory in ipairs(accessories) do 
+            -- Check the type of part it is 
+            if ( accessory.ClassName == 'MeshPart' and accessory.MeshId == targetMeshId ) then -- If its a meshpart, check its id 
+                -- Got a match, return it 
+                match = accessory 
+                break 
+            elseif ( accessory:FindFirstChild('Handle') ) then 
+                local hatHandle = accessory.Handle 
+                -- Its a part, check for a hat mesh 
+                local hatMesh = hatHandle:FindFirstChildOfClass('SpecialMesh') or hatHandle:FindFirstChildOfClass('Mesh') -- Might add filemesh support later 
+        
+                if ( hatMesh and hatMesh.MeshId == targetMeshId ) then -- If theres a mesh, check its id 
+                    -- Got a match, return it 
+                    match = accessory 
+                    break
+                end 
+            end
+        end
+        
+        -- No match was found, return an error 
+        if ( not match ) then
+            return false, 'No hats with a matching id were found'
+        end
+        
+        return HatObject.new(self, match) 
     end
     
     -- Destroys this current HatModule instance, clearing every hat and disabling the update connection.
