@@ -243,6 +243,7 @@ do
         return self._running 
     end
     
+    -- Returns the next valid accessory instance found 
     function HatModule:GetNextAccessory(keepInvalidAccessories: boolean) 
         -- Check for the player character 
         if ( not localChar ) then
@@ -276,6 +277,7 @@ do
         return hatAccessory, hatHandle
     end
     
+    -- Returns all valid accessories that were found 
     function HatModule:GetAllAccessories() 
         local accessories = {}
         
@@ -335,8 +337,8 @@ do
                 -- Got a match, return it 
                 match = accessory 
                 break 
-            elseif ( accessory:FindFirstChild('Handle') ) then 
-                local hatHandle = accessory.Handle 
+            else
+                local hatHandle = accessory.Handle -- FindFirstChild shouldn't have to be used here as invalid hats are filtered out by GetAllAccessories
                 -- Its a part, check for a hat mesh 
                 local hatMesh = hatHandle:FindFirstChildOfClass('SpecialMesh') or hatHandle:FindFirstChildOfClass('Mesh') -- Might add filemesh support later 
         
